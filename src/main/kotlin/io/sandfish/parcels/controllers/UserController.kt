@@ -24,7 +24,7 @@ class UserController(
     val userService: UserService
 ) {
 
-    @RequestMapping(value = ["/login"], method = [RequestMethod.POST])
+    @PostMapping(value = ["/login"])
     fun generateToken(@RequestBody login: UserDto): ResponseEntity<AuthToken> {
         val authentication: Authentication = authenticationManager.authenticate(
             UsernamePasswordAuthenticationToken(
@@ -37,16 +37,25 @@ class UserController(
         return ResponseEntity.ok(AuthToken(token))
     }
 
-    @RequestMapping(value = ["/register"], method = [RequestMethod.POST])
+    @PostMapping(value = ["/register"])
     fun saveUser(@RequestBody registeringUser: UserDto): User {
         return userService.save(UserDto(registeringUser.username, registeringUser.password))
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @RequestMapping(value = ["/{userId}/role"], method = [RequestMethod.POST])
+    @PostMapping(value = ["/{userId}/role"])
     fun addRoleToUser(@PathVariable userId: Long, @RequestBody role: RoleDto): UserWithRolesDto {
         val user = userService.addRoleToUser(id = userId, role = role)
         return user.toTransferObject()
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping(value = ["/{userId}"])
+    fun updateUser(@PathVariable userId: Long, @RequestBody user: UserWithRolesDto): UserWithRolesDto {
+        val updatedUser = userService.updateRoles(userId, user.toDomain())
+
+        return updatedUser.toTransferObject()
+
     }
 
     @PreAuthorize("hasRole('ADMIN')")

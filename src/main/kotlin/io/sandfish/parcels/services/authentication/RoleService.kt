@@ -7,7 +7,12 @@ import org.springframework.stereotype.Service
 
 
 @Service
-class RoleService(val roles: RoleRepository) {
+class RoleService(private val roles: RoleRepository) {
+
+    fun getRoles(): List<Role> {
+        return roles.findAll().toList()
+    }
+
     fun findByName(name: String): Role {
         return roles.findByName(name)
     }
@@ -16,8 +21,9 @@ class RoleService(val roles: RoleRepository) {
         return roles.save(
             Role(
                 name = role.name,
-                description = role.description
-            )
+                description = role.description,
+                users = mutableSetOf()
+            ),
         )
     }
 }

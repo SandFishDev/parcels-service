@@ -23,10 +23,13 @@ class User(
         joinColumns = [JoinColumn(name = "USER_ID")],
         inverseJoinColumns = [JoinColumn(name = "ROLE_ID")],
     )
-    val roles: MutableSet<Role>
+    var roles: MutableSet<Role>
 ) {
+
+    constructor(id: Long?, name: String, roles: MutableSet<Role>) : this(id, name, "", roles)
+
     fun toTransferObject(): UserWithRolesDto {
-        return UserWithRolesDto(name, roles)
+        return UserWithRolesDto(id!!, name, roles.map { it.toTransferObject() }.toMutableSet())
     }
 }
 

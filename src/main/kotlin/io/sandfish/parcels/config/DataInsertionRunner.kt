@@ -3,7 +3,6 @@ package io.sandfish.parcels.config
 import io.sandfish.parcels.dtos.DepartmentDto
 import io.sandfish.parcels.dtos.RoleDto
 import io.sandfish.parcels.dtos.UserDto
-import io.sandfish.parcels.services.ContainerService
 import io.sandfish.parcels.services.authentication.RoleService
 import io.sandfish.parcels.services.authentication.UserService
 import io.sandfish.parcels.services.department.DepartmentService
@@ -49,10 +48,15 @@ class DataInsertionRunner(
             DepartmentDto(name = DepartmentType.Heavy.name)
         )
 
+        departmentService.addDepartment(
+            DepartmentDto(null, name = DepartmentType.Insurance.name, setOf(1, 2, 3))
+        )
+
 
         val mailRole = RoleDto("MAIL")
         val regularRole = RoleDto("REGULAR")
-        val heavyRole = RoleDto(name = "HEAVY")
+        val heavyRole = RoleDto("HEAVY")
+        val insuranceRole = RoleDto("INSURANCE")
 
         //Add a bunch of users to more easily test
         val adminUser = userService.save(UserDto(username = "admin", password = "admin"))
@@ -67,10 +71,14 @@ class DataInsertionRunner(
         val heavyParcelUser = userService.save(UserDto(username = "heavy", password = "heavy"))
         userService.addRoleToUser(heavyParcelUser.id!!, heavyRole)
 
+        val insuranceParcelUser = userService.save(UserDto(username = "insurance", password = "insurance"))
+        userService.addRoleToUser(insuranceParcelUser.id!!, insuranceRole)
+
         val superadminUser = userService.save(UserDto(username = "superadmin", password = "superadmin"))
         userService.addRoleToUser(superadminUser.id!!, adminRole)
-        userService.addRoleToUser(superadminUser.id!!, mailRole)
-        userService.addRoleToUser(superadminUser.id!!, regularRole)
-        userService.addRoleToUser(superadminUser.id!!, heavyRole)
+        userService.addRoleToUser(superadminUser.id, mailRole)
+        userService.addRoleToUser(superadminUser.id, regularRole)
+        userService.addRoleToUser(superadminUser.id, heavyRole)
+        userService.addRoleToUser(superadminUser.id, insuranceRole)
     }
 }

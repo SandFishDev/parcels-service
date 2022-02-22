@@ -1,11 +1,12 @@
 package io.sandfish.parcels.services.department.strategy
 
-import io.sandfish.parcels.dtos.ContainerParcel
 import io.sandfish.parcels.services.department.DepartmentType
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 
-@Service
+@Component
 class HeavyDepartmentStrategy : DepartmentStrategy {
-    override fun isApplicable(parcel: ContainerParcel): Boolean = parcel.weight > 10.00
+    override val getPriority: Long get() = 2
+
+    override fun isApplicable(input: DepartmentStrategyInput): Boolean = input.weight > 10.00
     override fun getType(): DepartmentType = DepartmentType.Heavy
 }

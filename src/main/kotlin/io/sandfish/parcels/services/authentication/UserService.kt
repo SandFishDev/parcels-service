@@ -3,7 +3,6 @@ package io.sandfish.parcels.services.authentication
 import io.sandfish.parcels.domain.User
 import io.sandfish.parcels.dtos.RoleDto
 import io.sandfish.parcels.dtos.UserDto
-import io.sandfish.parcels.dtos.UserWithRolesDto
 import io.sandfish.parcels.repositories.RoleRepository
 import io.sandfish.parcels.repositories.UserRepository
 import org.springframework.security.core.authority.SimpleGrantedAuthority
@@ -42,16 +41,20 @@ class UserService(
     }
 
     fun save(user: UserDto): User {
-        val userRole = roleService.findByName("USER")
-
-        val nUser = User(
-            null,
-            name = user.username,
-            password = bcryptEncoder.encode(user.password),
-            roles = mutableSetOf(userRole)
+        val savedUser: User = userRepository.save(
+            User(
+                null,
+                name = user.username,
+                password = bcryptEncoder.encode(user.password),
+                roles = mutableSetOf()
+            )
         )
 
-        return userRepository.save(nUser)
+        val userRole = roleService.findByName("USER")
+        userRole.users.add(savedUser)
+        savedUser.roles.add(userRole)
+
+        return userRepository.save(savedUser)
     }
 
     /**
@@ -69,5 +72,13 @@ class UserService(
 
     fun getUsers(): List<User> {
         return this.userRepository.findAll().toList()
+    }
+
+    fun updateRoles(userId: Long, user: User): User {
+        val retrievedUser = this.userRepository.findById(userId).orElseThrow { RuntimeException() }
+
+        retrievedUser.roles = user.roles
+
+        return this.userRepository.save(retrievedUser)
     }
 }

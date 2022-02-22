@@ -1,11 +1,16 @@
 package io.sandfish.parcels.services.department.strategy
 
-import io.sandfish.parcels.dtos.ContainerParcel
 import io.sandfish.parcels.services.department.DepartmentType
 
 sealed interface DepartmentStrategy {
-    fun isApplicable(parcel: ContainerParcel): Boolean
+    val getPriority: Long
+
+    fun isApplicable(input: DepartmentStrategyInput): Boolean
 
     fun getType(): DepartmentType
 
 }
+
+data class DepartmentStrategyInput(
+    val weight: Double, val value: Double
+)

@@ -20,7 +20,7 @@ class Parcel(
 
     @Column(nullable = false) val weight: Double,
 
-    @Column(nullable = false) val department: DepartmentType,
+    @Column(nullable = false) var department: DepartmentType,
 
     @Column(nullable = false) var state: ParcelState,
 

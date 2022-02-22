@@ -3,11 +3,12 @@ package io.sandfish.parcels.services
 import io.sandfish.parcels.domain.Container
 import io.sandfish.parcels.domain.Parcel
 import io.sandfish.parcels.domain.ParcelState
-import io.sandfish.parcels.dtos.ContainerDto
+import io.sandfish.parcels.dtos.ContainerParcel
 import io.sandfish.parcels.dtos.ContainerStatisticsDto
 import io.sandfish.parcels.dtos.ContainerXMLPayload
 import io.sandfish.parcels.repositories.ContainerRepository
 import io.sandfish.parcels.services.department.strategy.DepartmentStrategy
+import io.sandfish.parcels.services.department.strategy.DepartmentStrategyInput
 import org.springframework.stereotype.Service
 import java.time.ZonedDateTime
 
@@ -23,8 +24,8 @@ class ContainerService(
             shippingDate = payload.shippingDate,
             arrivalDate = ZonedDateTime.now(),
             parcels = payload.parcels.map {
-                val matchingStrategies =
-                    departmentStrategies.single { departmentStrategy -> departmentStrategy.isApplicable(it) }
+                val matchingStrategies = findStrategyForParcel(it)
+
                 Parcel(
                     value = it.value,
                     weight = it.weight,
@@ -38,9 +39,24 @@ class ContainerService(
         containerRepository.save(container)
     }
 
+    private fun findStrategyForParcel(parcel: ContainerParcel): DepartmentStrategy {
+        val department = departmentStrategies.sortedBy { it.getPriority }
+            .find { departmentStrategy ->
+                departmentStrategy.isApplicable(
+                    DepartmentStrategyInput(
+                        weight = parcel.weight,
+                        value = parcel.value
+                    )
+                )
+            }
+
+        requireNotNull(department)
+
+        return department
+    }
+
     fun getContainerById(id: Long): Container {
-        val container = containerRepository.findById(id).orElseThrow { RuntimeException() }
-        return container
+        return containerRepository.findById(id).orElseThrow { RuntimeException() }
     }
 
     fun getContainers(): List<Container> {
