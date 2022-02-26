@@ -87,24 +87,31 @@ class DataInsertionRunner(
 
         //Add a bunch of users to more easily test
         val adminUser = userService.save(UserDto(username = "admin", password = "admin"))
-        adminUser.roles = mutableSetOf(userRole, adminRole, mailRole, regularRole, heavyRole, insuranceRole)
+        adminUser.roles = mutableSetOf(userRole, adminRole)
         userService.updateRoles(adminUser.id!!, adminUser)
 
         val mailParcelUser = userService.save(UserDto(username = "mail", password = "mail"))
+        mailParcelUser.roles = mutableSetOf(userRole,mailRole)
+        userService.updateRoles(mailParcelUser.id!!, mailParcelUser)
 
 
         val regularParcelUser = userService.save(UserDto(username = "regular", password = "regular"))
+        regularParcelUser.roles = mutableSetOf(userRole,  regularRole, )
+        userService.updateRoles(regularParcelUser.id!!, regularParcelUser)
 
 
         val heavyParcelUser = userService.save(UserDto(username = "heavy", password = "heavy"))
+        heavyParcelUser.roles = mutableSetOf(userRole,  heavyRole)
+        userService.updateRoles(heavyParcelUser.id!!, heavyParcelUser)
 
 
         val insuranceParcelUser = userService.save(UserDto(username = "insurance", password = "insurance"))
+        insuranceParcelUser.roles = mutableSetOf(userRole,insuranceRole)
+        userService.updateRoles(insuranceParcelUser.id!!, insuranceParcelUser)
 
 
         val superadminUser = userService.save(UserDto(username = "superadmin", password = "superadmin"))
-
-
-
+        superadminUser.roles = mutableSetOf(userRole, adminRole, mailRole, regularRole, heavyRole, insuranceRole)
+        userService.updateRoles(superadminUser.id!!, superadminUser)
     }
 }
