@@ -1,5 +1,6 @@
 package io.sandfish.parcels.controllers
 
+import io.sandfish.parcels.controllers.exceptions.UnauthorizedUserForDepartmentException
 import io.sandfish.parcels.dtos.ParcelDto
 import io.sandfish.parcels.dtos.ParcelStatisticsDto
 import io.sandfish.parcels.services.ParcelService
@@ -17,18 +18,22 @@ import org.springframework.web.bind.annotation.*
 class ParcelController(private val parcelService: ParcelService) {
 
     @GetMapping
-    fun getAllParcels(@RequestParam departmentType: String): ResponseEntity<List<ParcelDto>> {
-        if (verifyHasRole(departmentType)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build() //TODO throw exception instead
+    fun getAllParcels(@RequestParam department: String): List<ParcelDto> {
+        if (!verifyHasRole(department)) {
+            throw UnauthorizedUserForDepartmentException("User is not authorized to retrieved parcels for this department.")
         }
 
-        val parcels = parcelService.findParcelByDepartmentName(departmentType)
-        return ResponseEntity.ok(parcels.map { it.toTransferObject() })
+        val parcels = parcelService.findParcelByDepartmentName(department)
+        return parcels.map { it.toTransferObject() }
     }
 
     @PostMapping("/{id}/command/process")
     fun processParcel(@PathVariable id: Long, @RequestBody body: Unit): ParcelDto {
-        verifyHasRole(parcelService.findParcelById(id).department)
+        val department = parcelService.findParcelById(id).department
+
+        if (!verifyHasRole(department)) {
+            throw UnauthorizedUserForDepartmentException("User is not authorized to process parcels for this department.")
+        }
 
         return parcelService.processParcel(id).toTransferObject()
     }
@@ -42,16 +47,16 @@ class ParcelController(private val parcelService: ParcelService) {
     }
 
     /**
-     * TODO add javadoc
+     * Check if the user has the required role for the provided department
      */
     private fun verifyHasRole(departmentType: String): Boolean {
         val authorities: List<GrantedAuthority> = SecurityContextHolder.getContext()
             .authentication.authorities.toList()
 
         if (!authorities.map { it.authority }.contains("ROLE_${departmentType.uppercase()}")) {
-            return true
+            return false
         }
 
-        return false
+        return true
     }
 }

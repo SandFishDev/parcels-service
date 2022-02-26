@@ -1,6 +1,6 @@
 package io.sandfish.parcels.services.authentication
 
-import io.sandfish.parcels.controllers.exceptions.NotFoundException
+import io.sandfish.parcels.controllers.exceptions.EntityNotFoundException
 import io.sandfish.parcels.domain.User
 import io.sandfish.parcels.dtos.UserDto
 import io.sandfish.parcels.repositories.UserRepository
@@ -49,11 +49,11 @@ class UserService(
     }
 
     fun getUserById(userId: Long): User {
-        return this.userRepository.findById(userId).orElseThrow { NotFoundException("User with id $userId not found.") }
+        return this.userRepository.findById(userId).orElseThrow { EntityNotFoundException("User with id $userId not found.") }
     }
 
     fun getUserByName(name: String) : User {
-        return this.userRepository.findByName(name).orElseThrow { NotFoundException("User with name '$name' not found.") }
+        return this.userRepository.findByName(name).orElseThrow { EntityNotFoundException("User with name '$name' not found.") }
     }
 
     fun updateRoles(userId: Long, user: User): User {
@@ -63,8 +63,12 @@ class UserService(
         return this.userRepository.save(retrievedUser)
     }
 
+    /**
+     * Delete the user from all roles and delete the user itself
+     */
     fun delete(userId: Long) {
         val retrievedUser = getUserById(userId)
+
 
         retrievedUser.roles.forEach { role ->
             role.users.removeIf { it.id!! == userId }

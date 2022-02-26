@@ -7,11 +7,11 @@ import javax.persistence.*
 @Entity
 @Table(name = "role")
 class Role(
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY) val id: Long = 0,
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY) val id: Long?,
     @Column val name: String? = null,
     @Column val description: String? = null,
 
-    @ManyToMany(mappedBy = "roles", fetch = FetchType.EAGER, cascade = [CascadeType.PERSIST])
+    @ManyToMany(mappedBy = "roles", fetch = FetchType.EAGER, cascade = [CascadeType.PERSIST, CascadeType.MERGE])
     val users: MutableSet<User>,
 ) {
 

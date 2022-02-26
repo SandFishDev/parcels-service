@@ -1,15 +1,14 @@
 package io.sandfish.parcels.services.department
 
+import io.sandfish.parcels.controllers.exceptions.EntityNotFoundException
 import io.sandfish.parcels.domain.Department
+import io.sandfish.parcels.domain.Role
 import io.sandfish.parcels.domain.Rule
 import io.sandfish.parcels.dtos.DepartmentDto
-import io.sandfish.parcels.dtos.RoleDto
 import io.sandfish.parcels.repositories.DepartmentRepository
 import io.sandfish.parcels.repositories.RoleRepository
-import io.sandfish.parcels.repositories.RuleRepository
 import io.sandfish.parcels.services.authentication.RoleService
 import org.springframework.stereotype.Service
-import javax.transaction.Transactional
 
 
 @Service
@@ -17,7 +16,6 @@ class DepartmentService(
     private val roleService: RoleService,
     private val departmentRepository: DepartmentRepository,
     private val roleRepository: RoleRepository,
-    private val ruleRepository: RuleRepository,
 ) {
 
     /**
@@ -43,41 +41,47 @@ class DepartmentService(
 
         savedDepartment.successors.addAll(successorDepartments)
 
-        roleService.addRole(
-            RoleDto(
+        roleService.createRole(
+            Role(
+                id = null,
                 name = department.name.uppercase(),
-                description = "Role for ${department.name} department."
-            )
+                description = "Role for ${department.name} department.",
+                users = mutableSetOf()
+            ),
         )
 
         return departmentRepository.save(savedDepartment)
     }
 
 
-    fun updateSuccessors(id: Long, successors: List<Department>) {
-        val department = departmentRepository.findById(id).orElseThrow { RuntimeException() }
+    fun updateSuccessors(id: Long, successors: Set<Long>) {
+        val department = departmentRepository.findById(id)
+            .orElseThrow { EntityNotFoundException("Department with id '$id' could not be found.") }
+        val actualSuccesors = successors.map { this.getDepartmentById(it) }
 
         //remove current ancestory from other
-        department.successors.forEach{
+        department.successors.forEach {
             it.ancestors.remove(department)
         }
+
         //remova ancestory
         department.successors.clear()
 
 
         //add ancestor to every successors
-        successors.forEach{
+        actualSuccesors.forEach {
             it.ancestors.add(department)
         }
 
         //add successors
-        department.successors.addAll(successors)
+        department.successors.addAll(actualSuccesors)
 
         departmentRepository.save(department)
     }
 
     fun updateRules(id: Long, rules: List<Rule>) {
-        val department = departmentRepository.findById(id).orElseThrow { RuntimeException() }
+        val department = departmentRepository.findById(id)
+            .orElseThrow { EntityNotFoundException("Department with id '$id' could not be found.") }
 
         rules.map { it.department = department; it }
 
@@ -88,7 +92,8 @@ class DepartmentService(
     }
 
     fun updatePriority(id: Long, priority: Long) {
-        val department = departmentRepository.findById(id).orElseThrow { RuntimeException() }
+        val department = departmentRepository.findById(id)
+            .orElseThrow { EntityNotFoundException("Department with id '$id' could not be found.") }
 
         department.priority = priority
 
@@ -108,20 +113,34 @@ class DepartmentService(
     }
 
     /**
-     * Delete department and it's associated role
+     * Delete the department and its associated role and remove the role from all users
+     * For now we consider parcels associated with this department lost, and they cannot be processed without database manipulation
      */
-    @Transactional
     fun deleteDepartment(id: Long) {
         val department = departmentRepository.findById(id)
+            .orElseThrow { EntityNotFoundException("Department with id '$id' could not be found.") }
 
-        if (department.isPresent) {
-            val toBeDeletedRole = roleRepository.findByName(department.get().name.uppercase())
-            toBeDeletedRole.users.forEach{
-                it.roles.remove(toBeDeletedRole)
-            }
-
-            roleRepository.deleteById(toBeDeletedRole.id)
-            departmentRepository.deleteById(id)
+        val toBeDeletedRole = roleRepository.findByName(department.name.uppercase())
+        toBeDeletedRole.users.forEach {
+            it.roles.remove(toBeDeletedRole)
         }
+        roleRepository.deleteById(toBeDeletedRole.id!!)
+
+        //remove successors reference
+        department.successors.forEach {
+            it.ancestors.remove(department)
+            departmentRepository.save(it)
+        }
+        department.successors.clear()
+
+        //remove ancestors reference
+        department.ancestors.forEach {
+            it.successors.remove(department)
+            departmentRepository.save(it)
+        }
+        department.ancestors.clear()
+
+
+        departmentRepository.delete(department)
     }
 }

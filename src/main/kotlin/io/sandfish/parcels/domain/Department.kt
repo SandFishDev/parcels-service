@@ -18,7 +18,7 @@ class Department(
 
     var priority: Long,
 
-    @ManyToMany(mappedBy = "ancestors", fetch = FetchType.EAGER, cascade = [CascadeType.PERSIST])
+    @ManyToMany(mappedBy = "ancestors", fetch = FetchType.EAGER, cascade = [CascadeType.PERSIST, CascadeType.MERGE])
     var successors: MutableSet<Department>,
 
     @ManyToMany(fetch = FetchType.EAGER)

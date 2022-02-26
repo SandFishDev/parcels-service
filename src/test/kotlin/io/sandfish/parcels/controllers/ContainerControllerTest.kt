@@ -13,9 +13,11 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ResourceLoader
 import org.assertj.core.api.Assertions.assertThat
 import org.hamcrest.CoreMatchers.equalTo
+import org.springframework.test.context.ActiveProfiles
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@ActiveProfiles("test")
 class ContainerControllerTest {
 
     @Autowired
@@ -52,7 +54,7 @@ class ContainerControllerTest {
             .post("/api/containers")
             .then()
             .assertThat()
-            .statusCode(200)
+            .statusCode(204)
 
         assertThat(containerRepository.count()).isOne
         assertThat(containerRepository.findById(1L).get().containerId).isEqualTo(68465468)
@@ -61,7 +63,7 @@ class ContainerControllerTest {
     }
 
     @Test
-    fun `container get be retrieved by database id`(){
+    fun `container can be retrieved by database id`(){
         given()
             .header("Authorization", "Bearer $token")
             .get("/api/containers/1")

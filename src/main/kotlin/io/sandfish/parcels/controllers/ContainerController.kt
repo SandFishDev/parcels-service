@@ -3,7 +3,9 @@ package io.sandfish.parcels.controllers
 import io.sandfish.parcels.dtos.ContainerDto
 import io.sandfish.parcels.dtos.ContainerStatisticsDto
 import io.sandfish.parcels.dtos.ContainerXMLPayload
-import io.sandfish.parcels.services.ContainerService
+import io.sandfish.parcels.services.container.ContainerPayloadProcessor
+import io.sandfish.parcels.services.container.ContainerService
+import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 
@@ -14,15 +16,18 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/api/containers")
 @PreAuthorize("hasRole('ADMIN')")
 class ContainerController(
-    private val containerService: ContainerService
+    private val containerService: ContainerService,
+    private val containerPayloadProcessor: ContainerPayloadProcessor
 ) {
 
     /**
      * Endpoint for process XML container input into the system
      */
     @PostMapping(consumes = ["application/xml"])
-    fun insertParcels(@RequestBody body: ContainerXMLPayload) {
-        containerService.processContainer(body)
+    fun uploadContainer(@RequestBody body: ContainerXMLPayload): ResponseEntity<Unit> {
+        containerPayloadProcessor.processContainer(body)
+
+        return ResponseEntity.noContent().build()
     }
 
     /**
@@ -35,7 +40,6 @@ class ContainerController(
 
     /**
      * get all containers
-     * TODO this would be paged and based on a timewindow if I had enough time
      */
     @GetMapping
     fun getContainers(): List<ContainerDto>{
