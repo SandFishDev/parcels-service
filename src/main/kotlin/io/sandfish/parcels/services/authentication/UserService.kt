@@ -1,9 +1,8 @@
 package io.sandfish.parcels.services.authentication
 
+import io.sandfish.parcels.controllers.exceptions.NotFoundException
 import io.sandfish.parcels.domain.User
-import io.sandfish.parcels.dtos.RoleDto
 import io.sandfish.parcels.dtos.UserDto
-import io.sandfish.parcels.repositories.RoleRepository
 import io.sandfish.parcels.repositories.UserRepository
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
@@ -15,12 +14,12 @@ import org.springframework.stereotype.Service
 @Service
 class UserService(
     private val userRepository: UserRepository,
-    private val roleRepository: RoleRepository,
     private val roleService: RoleService,
     private val bcryptEncoder: BCryptPasswordEncoder
 ) : UserDetailsService {
+
     override fun loadUserByUsername(username: String): UserDetails {
-        val user: User = userRepository.findByName(username)
+        val user: User = this.getUserByName(username)
         return org.springframework.security.core.userdetails.User(
             user.name,
             user.password,
@@ -29,15 +28,7 @@ class UserService(
     }
 
     private fun getAuthority(user: User): Set<SimpleGrantedAuthority> {
-        val authorities: MutableSet<SimpleGrantedAuthority> = HashSet()
-        user.roles.forEach { role ->
-            authorities += SimpleGrantedAuthority("ROLE_" + role.name)
-        }
-        return authorities
-    }
-
-    fun findByName(name: String): User {
-        return userRepository.findByName(name)
+        return user.roles.map { SimpleGrantedAuthority("ROLE_" + it.name) }.toSet()
     }
 
     fun save(user: UserDto): User {
@@ -46,39 +37,39 @@ class UserService(
                 null,
                 name = user.username,
                 password = bcryptEncoder.encode(user.password),
-                roles = mutableSetOf()
+                roles = mutableSetOf(roleService.findByName("USER"))
             )
         )
 
-        val userRole = roleService.findByName("USER")
-        userRole.users.add(savedUser)
-        savedUser.roles.add(userRole)
-
         return userRepository.save(savedUser)
-    }
-
-    /**
-     * Add a new role to an existing user.
-     * Needs to get new JWT token after to take effect.
-     */
-    fun addRoleToUser(id: Long, role: RoleDto): User {
-        val user = this.userRepository.findById(id).orElseThrow { RuntimeException() }
-        val newRole = this.roleRepository.findByName(role.name)
-
-        user.roles.add(newRole)
-
-        return this.userRepository.save(user)
     }
 
     fun getUsers(): List<User> {
         return this.userRepository.findAll().toList()
     }
 
-    fun updateRoles(userId: Long, user: User): User {
-        val retrievedUser = this.userRepository.findById(userId).orElseThrow { RuntimeException() }
+    fun getUserById(userId: Long): User {
+        return this.userRepository.findById(userId).orElseThrow { NotFoundException("User with id $userId not found.") }
+    }
 
-        retrievedUser.roles = user.roles
+    fun getUserByName(name: String) : User {
+        return this.userRepository.findByName(name).orElseThrow { NotFoundException("User with name '$name' not found.") }
+    }
+
+    fun updateRoles(userId: Long, user: User): User {
+        val retrievedUser = getUserById(userId)
+        user.roles.also { retrievedUser.roles = it }
 
         return this.userRepository.save(retrievedUser)
+    }
+
+    fun delete(userId: Long) {
+        val retrievedUser = getUserById(userId)
+
+        retrievedUser.roles.forEach { role ->
+            role.users.removeIf { it.id!! == userId }
+        }
+
+        this.userRepository.deleteById(userId)
     }
 }

@@ -11,7 +11,7 @@ class Role(
     @Column val name: String? = null,
     @Column val description: String? = null,
 
-    @ManyToMany(mappedBy = "roles", fetch = FetchType.EAGER, cascade = [CascadeType.ALL])
+    @ManyToMany(mappedBy = "roles", fetch = FetchType.EAGER, cascade = [CascadeType.PERSIST])
     val users: MutableSet<User>,
 ) {
 

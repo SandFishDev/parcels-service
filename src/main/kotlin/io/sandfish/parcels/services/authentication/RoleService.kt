@@ -6,6 +6,9 @@ import io.sandfish.parcels.repositories.RoleRepository
 import org.springframework.stereotype.Service
 
 
+/**
+ * Service for retrieving and adding new roles
+ */
 @Service
 class RoleService(private val roles: RoleRepository) {
 
@@ -17,6 +20,9 @@ class RoleService(private val roles: RoleRepository) {
         return roles.findByName(name)
     }
 
+    /**
+     * Add a new role with no users associated to it.
+     */
     fun addRole(role: RoleDto): Role {
         return roles.save(
             Role(

@@ -1,55 +1,58 @@
 package io.sandfish.parcels.services
 
+import io.sandfish.parcels.controllers.exceptions.NotFoundException
 import io.sandfish.parcels.domain.Parcel
 import io.sandfish.parcels.domain.ParcelState
 import io.sandfish.parcels.dtos.ParcelStatisticsDto
 import io.sandfish.parcels.repositories.ParcelRepository
 import io.sandfish.parcels.services.department.DepartmentService
-import io.sandfish.parcels.services.department.DepartmentType
-import io.sandfish.parcels.services.department.strategy.DepartmentStrategy
 import io.sandfish.parcels.services.department.strategy.DepartmentStrategyInput
+import io.sandfish.parcels.services.department.strategy.execute
 import org.springframework.stereotype.Service
 
 @Service
 class ParcelService(
     private val parcelRepository: ParcelRepository,
     private val departmentService: DepartmentService,
-    private val departmentStrategies: List<DepartmentStrategy>
 ) {
 
-    fun findParcelByDepartment(departmentType: DepartmentType): List<Parcel> {
-        return parcelRepository.findParcelByDepartmentAndState(departmentType, ParcelState.InProcessing)
+    fun findParcelByDepartmentName(departmentName: String): List<Parcel> {
+        return parcelRepository.findParcelByDepartmentAndState(departmentName, ParcelState.InProcessing)
     }
 
     fun findParcelById(id: Long): Parcel {
-        return parcelRepository.findById(id).orElseThrow { RuntimeException() }
+        return parcelRepository.findById(id).orElseThrow { NotFoundException("Parcel not found") }
     }
 
     fun processParcel(id: Long): Parcel {
-        val parcel: Parcel = parcelRepository.findById(id).orElseThrow { RuntimeException() }
+        val parcel: Parcel = parcelRepository.findById(id).orElseThrow { NotFoundException("Parcel not found") }
+        val input = DepartmentStrategyInput(
+            parcel.weight,
+            parcel.value
+        )
 
-        val currentDepartment = departmentService.getDepartmentByName(parcel.department.name)
+        val currentDepartment = departmentService.getDepartmentByName(parcel.department)
 
         if (currentDepartment.successors.size == 0) {
             parcel.state = ParcelState.Processed
         } else {
-            val successorDepartments = departmentStrategies.filter {
-                currentDepartment.successors.map { it.name }.contains(it.getType().name)
-            }
-                .sortedBy { it.getPriority }
+            val successorDepartments = departmentService.getDepartments()
+                .filter { department -> currentDepartment.successors.map { it.name }.contains(department.name) }
+                .sortedBy { it.priority }
 
             val nextDepartment = successorDepartments
-                .find { departmentStrategy ->
-                    departmentStrategy.isApplicable(
-                        DepartmentStrategyInput(
-                            parcel.weight,
-                            parcel.value
-                        )
-                    )
-                }!!
-                .getType()
+                .find { department ->
+                    department.rules.all {
+                        it.execute(input)
+                    }
+                }
 
-            parcel.department = nextDepartment
+            //If there is no department to process we'll consider the parcel processed
+            if(nextDepartment == null){
+                parcel.state = ParcelState.Processed
+            }
+
+            parcel.department = (nextDepartment?.name ?: "")
         }
 
         return parcelRepository.save(parcel)
@@ -59,7 +62,7 @@ class ParcelService(
         val departmentParcelCounts = departmentService.getDepartments()
             .associate {
                 it.name to parcelRepository.countByDepartmentAndState(
-                    DepartmentType.valueOf(it.name),
+                    it.name,
                     ParcelState.InProcessing
                 )
             }

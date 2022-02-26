@@ -2,7 +2,6 @@ package io.sandfish.parcels.domain
 
 import com.vladmihalcea.hibernate.type.json.JsonBlobType
 import io.sandfish.parcels.dtos.ParcelDto
-import io.sandfish.parcels.services.department.DepartmentType
 import org.hibernate.annotations.Type
 import org.hibernate.annotations.TypeDef
 import javax.persistence.*
@@ -20,7 +19,7 @@ class Parcel(
 
     @Column(nullable = false) val weight: Double,
 
-    @Column(nullable = false) var department: DepartmentType,
+    @Column(nullable = false) var department: String,
 
     @Column(nullable = false) var state: ParcelState,
 
@@ -37,7 +36,7 @@ class Parcel(
         value: Double,
         weight: Double,
         metadata: Receipient,
-        department: DepartmentType,
+        department: String,
         state: ParcelState
     ) : this(
         null, value, weight, department, state, metadata, null

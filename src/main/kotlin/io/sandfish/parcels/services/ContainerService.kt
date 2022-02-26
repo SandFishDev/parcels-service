@@ -1,21 +1,23 @@
 package io.sandfish.parcels.services
 
 import io.sandfish.parcels.domain.Container
+import io.sandfish.parcels.domain.Department
 import io.sandfish.parcels.domain.Parcel
 import io.sandfish.parcels.domain.ParcelState
 import io.sandfish.parcels.dtos.ContainerParcel
 import io.sandfish.parcels.dtos.ContainerStatisticsDto
 import io.sandfish.parcels.dtos.ContainerXMLPayload
 import io.sandfish.parcels.repositories.ContainerRepository
-import io.sandfish.parcels.services.department.strategy.DepartmentStrategy
+import io.sandfish.parcels.services.department.DepartmentService
 import io.sandfish.parcels.services.department.strategy.DepartmentStrategyInput
+import io.sandfish.parcels.services.department.strategy.execute
 import org.springframework.stereotype.Service
 import java.time.ZonedDateTime
 
 @Service
 class ContainerService(
     private val containerRepository: ContainerRepository,
-    private val departmentStrategies: List<DepartmentStrategy>
+    private val departmentService: DepartmentService
 ) {
 
     fun processContainer(payload: ContainerXMLPayload) {
@@ -24,13 +26,13 @@ class ContainerService(
             shippingDate = payload.shippingDate,
             arrivalDate = ZonedDateTime.now(),
             parcels = payload.parcels.map {
-                val matchingStrategies = findStrategyForParcel(it)
+                val matchingStrategies = findDepartmentForParcel(it)
 
                 Parcel(
                     value = it.value,
                     weight = it.weight,
                     metadata = it.receipient.toDomain(),
-                    department = matchingStrategies.getType(),
+                    department = matchingStrategies.name,
                     state = ParcelState.InProcessing
                 )
             }
@@ -39,16 +41,15 @@ class ContainerService(
         containerRepository.save(container)
     }
 
-    private fun findStrategyForParcel(parcel: ContainerParcel): DepartmentStrategy {
-        val department = departmentStrategies.sortedBy { it.getPriority }
-            .find { departmentStrategy ->
-                departmentStrategy.isApplicable(
-                    DepartmentStrategyInput(
-                        weight = parcel.weight,
-                        value = parcel.value
-                    )
-                )
-            }
+    private fun findDepartmentForParcel(parcel: ContainerParcel): Department {
+        val input = DepartmentStrategyInput(
+            weight = parcel.weight,
+            value = parcel.value
+        )
+
+        val department = this.departmentService.getDepartments()
+            .sortedBy { it.priority }
+            .find { department -> department.rules.all { it.execute(input) } }
 
         requireNotNull(department)
 
@@ -63,6 +64,9 @@ class ContainerService(
         return containerRepository.findAll().toList()
     }
 
+    /**
+     * TODO this returns a DTO but should be a model
+     */
     fun getStatistics(): ContainerStatisticsDto {
         return ContainerStatisticsDto(
             containerCount = containerRepository.count(),

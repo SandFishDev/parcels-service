@@ -38,15 +38,8 @@ class UserController(
     }
 
     @PostMapping(value = ["/register"])
-    fun saveUser(@RequestBody registeringUser: UserDto): User {
-        return userService.save(UserDto(registeringUser.username, registeringUser.password))
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping(value = ["/{userId}/role"])
-    fun addRoleToUser(@PathVariable userId: Long, @RequestBody role: RoleDto): UserWithRolesDto {
-        val user = userService.addRoleToUser(id = userId, role = role)
-        return user.toTransferObject()
+    fun saveUser(@RequestBody registeringUser: UserDto): UserWithRolesDto {
+        return userService.save(registeringUser).toTransferObject()
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -55,7 +48,14 @@ class UserController(
         val updatedUser = userService.updateRoles(userId, user.toDomain())
 
         return updatedUser.toTransferObject()
+    }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping(value = ["/{userId}"])
+    fun saveUser(@PathVariable userId: Long): ResponseEntity<Unit> {
+        userService.delete(userId)
+
+        return ResponseEntity.noContent().build()
     }
 
     @PreAuthorize("hasRole('ADMIN')")

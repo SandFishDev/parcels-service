@@ -1,7 +1,6 @@
 package io.sandfish.parcels.dtos
 
 import io.sandfish.parcels.domain.ParcelState
-import io.sandfish.parcels.services.department.DepartmentType
 import java.time.ZonedDateTime
 
 data class ContainerDto(
@@ -17,7 +16,7 @@ data class ParcelDto(
     val value: Double,
     val weight: Double,
     val receipient: ReceipientDto,
-    val department: DepartmentType,
+    val department: String,
     val state: ParcelState,
 )
 

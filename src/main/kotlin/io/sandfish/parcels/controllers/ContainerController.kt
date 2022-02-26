@@ -4,6 +4,7 @@ import io.sandfish.parcels.dtos.ContainerDto
 import io.sandfish.parcels.dtos.ContainerStatisticsDto
 import io.sandfish.parcels.dtos.ContainerXMLPayload
 import io.sandfish.parcels.services.ContainerService
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 
 /**
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*
  */
 @RestController
 @RequestMapping("/api/containers")
+@PreAuthorize("hasRole('ADMIN')")
 class ContainerController(
     private val containerService: ContainerService
 ) {
@@ -33,7 +35,7 @@ class ContainerController(
 
     /**
      * get all containers
-     * TODO this would be paged and based on a timewindow if I had anough time
+     * TODO this would be paged and based on a timewindow if I had enough time
      */
     @GetMapping
     fun getContainers(): List<ContainerDto>{
